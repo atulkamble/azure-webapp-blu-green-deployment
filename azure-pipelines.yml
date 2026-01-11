@@ -1,0 +1,90 @@
+trigger:
+- main
+
+variables:
+  azureSubscription: 'Azure-Service-Connection'
+  webAppName: 'bg-webapp-atul'
+  resourceGroupName: 'rg-bluegreen-demo'
+  slotName: 'staging'
+  artifactName: 'drop'
+
+stages:
+
+# =========================
+# BUILD STAGE
+# =========================
+- stage: Build
+  displayName: Build Application
+  jobs:
+  - job: BuildJob
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+        replaceExistingArchive: true
+
+    - publish: '$(Build.ArtifactStagingDirectory)'
+      artifact: $(artifactName)
+
+# =========================
+# DEPLOY TO GREEN (STAGING)
+# =========================
+- stage: Deploy_Staging
+  displayName: Deploy to Green Slot (Staging)
+  dependsOn: Build
+  jobs:
+  - job: DeployGreen
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - download: current
+      artifact: $(artifactName)
+
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: $(azureSubscription)
+        appName: $(webAppName)
+        deployToSlotOrASE: true
+        resourceGroupName: $(resourceGroupName)
+        slotName: $(slotName)
+        package: '$(Pipeline.Workspace)/$(artifactName)/app.zip'
+
+# =========================
+# MANUAL APPROVAL (OPTIONAL)
+# =========================
+- stage: Approval
+  displayName: Manual Approval
+  dependsOn: Deploy_Staging
+  jobs:
+  - job: ApprovalJob
+    pool: server
+    steps:
+    - task: ManualValidation@0
+      inputs:
+        instructions: 'Verify staging slot before production swap'
+        timeoutInMinutes: 60
+
+# =========================
+# SWAP GREEN → BLUE
+# =========================
+- stage: Swap_To_Production
+  displayName: Swap Staging with Production
+  dependsOn: Approval
+  jobs:
+  - job: SwapSlot
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: AzureAppServiceManage@0
+      inputs:
+        azureSubscription: $(azureSubscription)
+        Action: 'Swap Slots'
+        WebAppName: $(webAppName)
+        ResourceGroupName: $(resourceGroupName)
+        SourceSlot: $(slotName)
+        SwapWithProduction: true

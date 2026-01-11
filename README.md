@@ -32,7 +32,6 @@
 
 <strong>Version 1.0.0</strong> | <strong>Last Updated:</strong> January 2026
 </div>
----
 
 ## 🟦🟩 Blue-Green Deployment – Azure Web App (Azure Pipelines)
 

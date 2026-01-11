@@ -141,7 +141,14 @@ stages:
 # SWAP GREEN → BLUE
 # =========================
 - stage: Swap_To_Production
-  di# Swap staging slot to production
+  displayName: Swap Staging with Production
+  dependsOn: Approval
+  jobs:
+  - job: SwapSlot
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    # Swap staging slot to production
     - task: AzureAppServiceManage@0
       displayName: 'Swap Slots (Green → Blue)'
       inputs:

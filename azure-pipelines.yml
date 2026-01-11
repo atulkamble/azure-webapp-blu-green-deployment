@@ -177,11 +177,4 @@ stages:
         done
         echo "✗ Production health check failed after swap"
         exit 1
-      displayName: 'Health Check - Production Slot'e@0
-      inputs:
-        azureSubscription: $(azureSubscription)
-        Action: 'Swap Slots'
-        WebAppName: $(webAppName)
-        ResourceGroupName: $(resourceGroupName)
-        SourceSlot: $(slotName)
-        SwapWithProduction: true
+      displayName: 'Health Check - Production Slot'
